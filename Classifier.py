@@ -10,10 +10,21 @@ FEATURES:
 CLEANING:
 - EVERYTHING EXCEPT A-Z
 """
-from Cleaner import Cleaner
+import string
+import nltk
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.stem import WordNetLemmatizer
 
-class Classifier(Cleaner):
+# TOKENIZATION
+file_content = open("data/charles_dickens_1.txt").read()
+tokens = nltk.word_tokenize(file_content)
 
-    def read_text(self, filename):
-        with open(filename, "r", "UTF-8"):
-            pass
+# LEMMATIZATION
+lemmatizer = WordNetLemmatizer()
+lemmatized_words = []
+for token in tokens:
+    lemmatized_words.append(lemmatizer.lemmatize(token))
+
+print(lemmatized_words)
+
+# STOPWORD REMOVAL
