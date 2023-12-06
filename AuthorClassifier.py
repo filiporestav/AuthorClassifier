@@ -77,6 +77,9 @@ class AuthorClassifier:
     def preprocess_text(self, text):
         text = text.lower() # Convert to lowercase
 
+        # Remove short abbreviations, e.g. "K."
+        text = re.sub("\w\.", "", text)
+
         # Replace — with whitespace (commonly used in e.g. Kafka books)
         text = re.sub("—", " ", text)
 
