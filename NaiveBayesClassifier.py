@@ -3,14 +3,15 @@ import os
 from nltk import sent_tokenize
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB, ComplementNB
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.naive_bayes import ComplementNB
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import re # Regex
 from nltk.corpus import stopwords
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from Author import Author
 
 """
 DESCRIPTION:
@@ -45,27 +46,28 @@ class AuthorClassifier:
         self.X_test_vectorized = None
 
         # Our classifier
-        self.classifier = ComplementNB()
+        self.classifier = ComplementNB() # Better than MultinomialNB if we have unbalanced data (which we have)
 
     """
     Method which creates a Pandas dataframe with text and author column.
     """
     def read_files(self):
-        for filename in os.listdir(self.books_directory): # Iterate through each file in the specified directory
-            if filename.endswith(".txt"):
-                author = filename.split("_")[0] # Filenames are in the format "author_book.txt"
-                filepath = os.path.join(self.books_directory, filename)
+        for root, dirs, files in os.walk(self.books_directory): # Iterate through each file in the specified directory
+            for filename in files:
+                if filename.endswith(".txt"):
+                    author_name = os.path.basename(root) # Get author name from subfolder name
 
-                with open(filepath, "r", encoding="utf-8") as file:
-                    content = file.read() # Returns the whole text as a string
-                    sentences = sent_tokenize(content) # Save the sentences in a list
+                    filepath = os.path.join(root, filename)
 
-                    # Append each sentence and corresponding author to the data dictionary
-                    for sentence in sentences:
-                        processed_text_list = self.preprocess_text(sentence)
-                        if len(processed_text_list)>=self.min_sentence_length: 
-                            self.data["text"].append(" ".join(processed_text_list)) # Convert the list of words to a string
-                            self.data["author"].append(author)
+                    with open(filepath, "r", encoding="utf-8") as file:
+                        content = file.read() # Returns the whole text as a string
+                        sentences = sent_tokenize(content) # Save the sentences in a list
+
+                        for sentence in sentences:
+                            processed_text_list = self.preprocess_text(sentence)
+                            if len(processed_text_list)>=self.min_sentence_length: 
+                                self.data["text"].append(" ".join(processed_text_list)) # Convert the list of words to a string
+                                self.data["author"].append(author_name)
 
         self.df = pd.DataFrame(self.data) # Create a dataframe for the data
 
@@ -99,7 +101,7 @@ class AuthorClassifier:
         words = text.split()
         filtered_words = [word for word in words if word.lower() not in stop_words]
         return filtered_words
-
+    
     """
     Splits our data in training and test sets.
     """
@@ -139,6 +141,16 @@ class AuthorClassifier:
         print('\nClassification Report:')
         print(classification_report(self.y_test, y_pred))
 
+        cm = confusion_matrix(self.y_test, y_pred) # Compute confusion matrix
+
+        # Plot confusion matrix as heatmap
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=np.unique(self.y_test), yticklabels=np.unique(self.y_test))
+        plt.title("Confusion matrix")
+        plt.xlabel("Predicted")
+        plt.ylabel("Actual")
+        plt.show()
+
     """
     Method which predicts the author of a new sentence.
     """
@@ -171,7 +183,7 @@ class AuthorClassifier:
             class_labels = np.unique(self.y_train)
             num_classes = len(class_labels)
 
-            plt.figure(figsize=(15, 6 * num_classes), layout="tight")
+            plt.figure(figsize=(16, 6 * num_classes), layout="tight")
 
             for i, label in enumerate(class_labels):
                 plt.subplot(num_classes, 3, i + 1)
