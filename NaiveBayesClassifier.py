@@ -39,7 +39,7 @@ class AuthorClassifier:
         self.y_test = None
 
         # Our vectorizer
-        self.vectorizer = TfidfVectorizer(max_features=max_features)
+        self.vectorizer = TfidfVectorizer(max_features=max_features, use_idf=True)
 
         # Td-idf-weighted document-term matrices (sparse matrices of (n_samples, n_features))
         self.X_train_vectorized = None # Each row corresponds to a document (or text snippet), and each column to an unique word or term in the entire corpus
@@ -64,8 +64,8 @@ class AuthorClassifier:
                         sentences = sent_tokenize(content) # Save the sentences in a list
 
                         for sentence in sentences:
-                            processed_text_list = self.preprocess_text(sentence)
-                            if len(processed_text_list)>=self.min_sentence_length: 
+                            processed_text_list = self.preprocess_text(sentence) # Preprocess each sentence
+                            if len(processed_text_list)>=self.min_sentence_length: # Choose only sentences that are of a specific length, to get most accurate data
                                 self.data["text"].append(" ".join(processed_text_list)) # Convert the list of words to a string
                                 self.data["author"].append(author_name)
 
@@ -79,10 +79,10 @@ class AuthorClassifier:
     def preprocess_text(self, text):
         text = text.lower() # Convert to lowercase
 
-        # Remove short abbreviations, e.g. "K."
-        text = re.sub("\w\.", "", text)
+        # Remove short abbreviations, e.g. "K. or "Mr."
+        text = re.sub(r"\s(A-Z){1,2}\.", "", text)
 
-        # Replace — with whitespace (commonly used in e.g. Kafka books)
+        # Replace — and newline with whitespace (commonly used in e.g. Kafka books)
         text = re.sub("—", " ", text)
 
         # Remove content within square brackets, e.g. "illustration" and "copyright"
@@ -99,8 +99,8 @@ class AuthorClassifier:
         # Remove stopwords
         stop_words = set(stopwords.words("english"))
         words = text.split()
-        filtered_words = [word for word in words if word.lower() not in stop_words]
-        return filtered_words
+        filtered_text = [word for word in words if word.lower() not in stop_words]
+        return filtered_text
     
     """
     Splits our data in training and test sets.
