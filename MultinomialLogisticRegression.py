@@ -86,26 +86,41 @@ class MultinomialLogisticRegression():
         gradient = x.T @ (y_pred - y_true) / len(y_true)
         return gradient
     
-    def gradient_descent(self, num_epochs=100):
+    def gradient_descent(self, num_epochs=500, batch_size=None, stochastic=True):
         """
         Train the model using gradient descent.
+
+        @param num_epochs Number of training epochs
+        @param batch_size Batch size for minibatch gradient descent
+        @param stochastic If True, use stochastic gradient descent
         """
         for epoch in range(num_epochs):
-            # Forward pass
-            scores = self.score(self.x)
-            probabilities = self.softmax(scores)
+            if stochastic:
+                # Shuffle data for stochastic gradient descent
+                indices = np.random.permutation(self.DATAPOINTS)
+                self.x = self.x[indices]
+                self.y = self.y[indices]
 
-            # One-hot encode the true labels
-            y_true_one_hot = np.eye(self.CLASSES)[self.y]
+            for batch_start in range(0, self.DATAPOINTS, batch_size or self.DATAPOINTS):
+                batch_end = batch_start + batch_size if batch_size else self.DATAPOINTS
+                x_batch = self.x[batch_start:batch_end]
+                y_batch = self.y[batch_start:batch_end]
 
-            # Compute the loss
-            loss = self.cross_entropy_loss(probabilities, y_true_one_hot)
+                # Forward pass
+                scores = self.score(x_batch)
+                probabilities = self.softmax(scores)
 
-            # Backward pass - Compute the gradient
-            self.gradient = self.compute_gradient(self.x, y_true_one_hot, probabilities)
+                # One-hot encode the true labels
+                y_true_one_hot = np.eye(self.CLASSES)[y_batch]
 
-            # Update weights using gradient descent
-            self.theta -= self.LEARNING_RATE * self.gradient
+                # Compute the loss
+                loss = self.cross_entropy_loss(probabilities, y_true_one_hot)
+
+                # Backward pass - Compute the gradient
+                self.gradient = self.compute_gradient(x_batch, y_true_one_hot, probabilities)
+
+                # Update weights using gradient descent
+                self.theta -= self.LEARNING_RATE * self.gradient
 
             # Check for convergence
             if np.linalg.norm(self.gradient) < self.CONVERGENCE_MARGIN:
@@ -117,6 +132,7 @@ class MultinomialLogisticRegression():
                 print(f"Epoch {epoch}, Loss: {loss}")
 
         print(self.theta)
+
 
 def main():
     x, y = preprocess_data("books")
